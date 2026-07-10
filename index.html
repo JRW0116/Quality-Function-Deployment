@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="A public browser-based Quality Function Deployment and House of Quality builder." />
+  <title>Quality Function Deployment | House of Quality</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Customer-driven product planning</p>
+      <h1>Quality Function Deployment</h1>
+      <p class="subhead">Build a House of Quality that translates customer needs into measurable, prioritized technical requirements.</p>
+    </div>
+    <div class="header-actions">
+      <button id="exportJson" type="button">Export JSON</button>
+      <button id="exportCsv" type="button">Export CSV</button>
+      <label class="import-control">Import JSON<input id="importJson" type="file" accept="application/json" /></label>
+    </div>
+  </header>
+
+  <main>
+    <section class="project-panel" aria-labelledby="project-title">
+      <div class="panel-title"><h2 id="project-title">Project Details</h2><span id="saveState" class="save-state">Saved locally</span></div>
+      <div class="project-grid">
+        <label>Project name<input id="projectName" placeholder="e.g., Customer portal redesign" /></label>
+        <label>Product / service<input id="productService" placeholder="Product or service being designed" /></label>
+        <label>Project owner<input id="owner" placeholder="Name or team" /></label>
+        <label>Customer segment<input id="customerSegment" placeholder="Primary customer group" /></label>
+        <label>Revision<input id="revision" placeholder="A" /></label>
+        <label>Review date<input id="reviewDate" type="date" /></label>
+      </div>
+    </section>
+
+    <section class="method-band" aria-labelledby="method-title">
+      <div><h2 id="method-title">House of Quality Workflow</h2><p>Capture the voice of the customer, define measurable technical responses, map relationships, set targets, and use weighted priorities to focus the team.</p></div>
+      <ol class="steps"><li>Customer needs</li><li>Importance</li><li>Technical responses</li><li>Relationships</li><li>Targets</li><li>Priorities</li></ol>
+    </section>
+
+    <section class="toolbar" aria-label="House of Quality controls">
+      <div class="summary"><div><span id="needCount">0</span><small>Customer needs</small></div><div><span id="responseCount">0</span><small>Technical responses</small></div><div><span id="topPriority">—</span><small>Top priority</small></div></div>
+      <div class="toolbar-actions"><button id="addNeed" type="button">Add Customer Need</button><button id="addResponse" type="button">Add Technical Response</button><button id="loadDemo" class="secondary" type="button">Restore Demo</button><button id="clearAll" class="secondary" type="button">Clear</button></div>
+    </section>
+
+    <section class="worksheet-wrap">
+      <div class="matrix-key"><strong>Relationship strength:</strong><span><i class="rel rel-9">9</i>Strong</span><span><i class="rel rel-3">3</i>Moderate</span><span><i class="rel rel-1">1</i>Weak</span><span><i class="rel rel-0">—</i>None</span><small>Click a matrix cell to change its value.</small></div>
+      <div class="table-scroll"><table id="qfdTable" aria-label="House of Quality relationship matrix"><thead id="matrixHead"></thead><tbody id="matrixBody"></tbody><tfoot id="matrixFoot"></tfoot></table></div>
+      <div class="matrix-actions"><button id="addNeedBottom" type="button">+ Add Customer Need</button><button id="addResponseBottom" type="button">+ Add Technical Response</button></div>
+    </section>
+
+    <section class="analysis-grid">
+      <article class="analysis-card"><h2>Technical Priority Ranking</h2><p>Weighted score = customer importance × relationship strength.</p><div id="priorityRanking"></div></article>
+      <article class="analysis-card"><h2>Customer Satisfaction Gaps</h2><p>Difference between current and target satisfaction.</p><div id="gapRanking"></div></article>
+    </section>
+
+    <section class="notice"><strong>Reference note:</strong> This independent working aid is informed by public American Society for Quality resources on Quality Function Deployment and the House of Quality. It is not affiliated with or endorsed by ASQ.</section>
+  </main>
+
+  <template id="needRowTemplate"><tr><th class="need-cell"><button class="delete-control delete-need" type="button" title="Delete customer need">×</button><textarea data-need="name" aria-label="Customer need"></textarea></th><td class="rating"><select data-need="importance" aria-label="Importance"></select></td><td class="rating"><select data-need="current" aria-label="Current satisfaction"></select></td><td class="rating"><select data-need="target" aria-label="Target satisfaction"></select></td></tr></template>
+  <script src="app.js"></script>
+</body>
+</html>

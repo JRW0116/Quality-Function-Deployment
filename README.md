@@ -1,28 +1,22 @@
-# QFD Studio — Interactive Quality Function Deployment
+# Quality Function Deployment — House of Quality Builder
 
-## [Launch the interactive application →](https://quality-function-deployment.lovely-plume-6281.chatgpt.site)
+This is a public, static browser application for building a Quality Function Deployment model and House of Quality. It requires no account, server, installation, or ChatGPT login.
 
-QFD Studio is a working House of Quality application for translating the voice of the customer into ranked, measurable technical priorities.
+## Use
 
-### What you can do
+Open `index.html` in a browser. The application saves work locally and supports JSON import/export plus CSV worksheet export.
 
-- Create, edit, and remove customer needs and technical responses
-- Rate customer importance, current satisfaction, and target satisfaction
-- Build the relationship matrix using weak (1), moderate (3), and strong (9) relationships
-- Calculate and rank weighted technical priorities automatically
-- Review customer satisfaction gaps
-- Set measurable technical targets and improvement directions
-- Save the project locally in the browser
-- Export the complete matrix to CSV
-- Use the built-in QFD quick guide
+## GitHub Pages Hosting
 
-The methodology is informed by public American Society for Quality resources on [Quality Function Deployment](https://asq.org/quality-resources/qfd-quality-function-deployment) and the [House of Quality](https://asq.org/quality-resources/house-of-quality). This independent application is not affiliated with or endorsed by ASQ.
+1. Open **Settings > Pages** in this repository.
+2. Choose **Deploy from a branch**.
+3. Select the `main` branch and `/root`.
+4. Save, then use the published Pages URL as the link from your website.
 
-### Run locally
+The expected public URL is:
 
-```bash
-npm install
-npm run dev
-```
+`https://jrw0116.github.io/Quality-Function-Deployment/`
 
-Create a production build with `npm run build`.
+## Reference Notice
+
+This independent working aid is informed by public American Society for Quality resources on [Quality Function Deployment](https://asq.org/quality-resources/qfd-quality-function-deployment) and the [House of Quality](https://asq.org/quality-resources/house-of-quality). It is not affiliated with or endorsed by ASQ.
