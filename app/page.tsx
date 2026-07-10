@@ -2,123 +2,102 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-type Need = { id: number; name: string; importance: number };
-type Technical = { id: number; name: string; direction: "up" | "down" | "target"; target: string };
+type Need = { id: string; name: string; importance: number; current: number; target: number };
+type Response = { id: string; name: string; direction: "up" | "down" | "target"; unit: string; target: string };
+type Project = { name: string; product: string; owner: string };
 
-const sampleNeeds: Need[] = [
-  { id: 1, name: "Easy to learn", importance: 5 },
-  { id: 2, name: "Fast to complete", importance: 4 },
-  { id: 3, name: "Reliable results", importance: 5 },
-  { id: 4, name: "Easy to share", importance: 3 },
+const newId = () => Math.random().toString(36).slice(2, 9);
+const seedNeeds: Need[] = [
+  { id: "n1", name: "Easy to learn", importance: 5, current: 3, target: 5 },
+  { id: "n2", name: "Fast to complete", importance: 5, current: 2, target: 5 },
+  { id: "n3", name: "Reliable results", importance: 4, current: 3, target: 5 },
+  { id: "n4", name: "Simple to share", importance: 3, current: 2, target: 4 },
 ];
-
-const sampleTechnical: Technical[] = [
-  { id: 1, name: "Onboarding time", direction: "down", target: "< 5 min" },
-  { id: 2, name: "Steps per analysis", direction: "down", target: "≤ 8" },
-  { id: 3, name: "Validation coverage", direction: "up", target: "≥ 95%" },
-  { id: 4, name: "Export formats", direction: "up", target: "3" },
+const seedResponses: Response[] = [
+  { id: "r1", name: "Onboarding time", direction: "down", unit: "minutes", target: "≤ 5" },
+  { id: "r2", name: "Steps per analysis", direction: "down", unit: "steps", target: "≤ 8" },
+  { id: "r3", name: "Validation coverage", direction: "up", unit: "%", target: "≥ 95" },
+  { id: "r4", name: "Export formats", direction: "up", unit: "count", target: "≥ 3" },
 ];
-
-const initialRelations = [
-  [9, 3, 1, 0],
-  [1, 9, 3, 1],
-  [1, 3, 9, 1],
-  [0, 1, 1, 9],
-];
-
-const relationLabel: Record<number, string> = { 0: "None", 1: "Weak", 3: "Moderate", 9: "Strong" };
+const seedRelations = [[9, 3, 1, 0], [1, 9, 3, 1], [3, 1, 9, 1], [0, 1, 3, 9]];
+const relationValues = [0, 1, 3, 9];
 
 export default function Home() {
-  const [needs, setNeeds] = useState(sampleNeeds);
-  const [technical, setTechnical] = useState(sampleTechnical);
-  const [relations, setRelations] = useState(initialRelations);
-  const [projectName, setProjectName] = useState("Digital service concept");
-  const [saved, setSaved] = useState(false);
+  const [project, setProject] = useState<Project>({ name: "Digital Service Redesign", product: "Customer portal", owner: "Product & Quality Team" });
+  const [needs, setNeeds] = useState(seedNeeds);
+  const [responses, setResponses] = useState(seedResponses);
+  const [relations, setRelations] = useState(seedRelations);
+  const [view, setView] = useState<"matrix" | "priorities">("matrix");
+  const [toast, setToast] = useState("");
+  const [help, setHelp] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("qfd-project");
-    if (!stored) return;
-    try {
-      const data = JSON.parse(stored);
-      setNeeds(data.needs || sampleNeeds);
-      setTechnical(data.technical || sampleTechnical);
-      setRelations(data.relations || initialRelations);
-      setProjectName(data.projectName || "Digital service concept");
-    } catch { /* keep the guided sample */ }
+    const saved = localStorage.getItem("qfd-workspace-v2");
+    if (!saved) return;
+    try { const data = JSON.parse(saved); setProject(data.project); setNeeds(data.needs); setResponses(data.responses); setRelations(data.relations); } catch { /* use sample */ }
   }, []);
 
-  const scores = useMemo(() => technical.map((_, col) =>
-    needs.reduce((total, need, row) => total + need.importance * (relations[row]?.[col] || 0), 0)
-  ), [needs, technical, relations]);
+  const scores = useMemo(() => responses.map((_, c) => needs.reduce((sum, need, r) => sum + need.importance * (relations[r]?.[c] || 0), 0)), [needs, responses, relations]);
   const maxScore = Math.max(...scores, 1);
+  const completion = Math.round(((needs.filter(n => n.name.trim()).length + responses.filter(r => r.name.trim()).length) / Math.max(needs.length + responses.length, 1)) * 100);
 
-  function cycleRelation(row: number, col: number) {
-    const values = [0, 1, 3, 9];
-    setRelations(current => current.map((line, r) => line.map((value, c) =>
-      r === row && c === col ? values[(values.indexOf(value) + 1) % values.length] : value
-    )));
-  }
+  const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 1800); };
+  const save = () => { localStorage.setItem("qfd-workspace-v2", JSON.stringify({ project, needs, responses, relations })); notify("Project saved to this browser"); };
+  const cycle = (row: number, col: number) => setRelations(current => current.map((line, r) => line.map((value, c) => r === row && c === col ? relationValues[(relationValues.indexOf(value) + 1) % relationValues.length] : value)));
+  const addNeed = () => { setNeeds(v => [...v, { id: newId(), name: "New customer need", importance: 3, current: 2, target: 4 }]); setRelations(v => [...v, responses.map(() => 0)]); };
+  const removeNeed = (index: number) => { if (needs.length === 1) return; setNeeds(v => v.filter((_, i) => i !== index)); setRelations(v => v.filter((_, i) => i !== index)); };
+  const addResponse = () => { setResponses(v => [...v, { id: newId(), name: "New technical response", direction: "up", unit: "measure", target: "TBD" }]); setRelations(v => v.map(row => [...row, 0])); };
+  const removeResponse = (index: number) => { if (responses.length === 1) return; setResponses(v => v.filter((_, i) => i !== index)); setRelations(v => v.map(row => row.filter((_, i) => i !== index))); };
+  const reset = () => { setProject({ name: "Digital Service Redesign", product: "Customer portal", owner: "Product & Quality Team" }); setNeeds(seedNeeds); setResponses(seedResponses); setRelations(seedRelations); localStorage.removeItem("qfd-workspace-v2"); notify("Sample restored"); };
+  const exportCsv = () => {
+    const rows = [["Customer need", "Importance", "Current", "Target", ...responses.map(r => r.name)], ...needs.map((n, i) => [n.name, n.importance, n.current, n.target, ...relations[i]]), ["Weighted priority", "", "", "", ...scores]];
+    const csv = rows.map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); const a = document.createElement("a"); a.href = url; a.download = `${project.name.toLowerCase().replaceAll(" ", "-")}-qfd.csv`; a.click(); URL.revokeObjectURL(url); notify("CSV exported");
+  };
 
-  function saveProject() {
-    localStorage.setItem("qfd-project", JSON.stringify({ projectName, needs, technical, relations }));
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1800);
-  }
+  return <div className="appShell">
+    <aside>
+      <div className="logo"><span>Q</span><div><b>QFD Studio</b><small>House of Quality</small></div></div>
+      <div className="projectMini"><small>ACTIVE PROJECT</small><strong>{project.name}</strong><span>{completion}% configured</span><i><b style={{ width: `${completion}%` }} /></i></div>
+      <nav>
+        <p>BUILD</p><button className="active"><span>01</span>House of Quality</button><button onClick={() => setView("priorities")}><span>02</span>Priority analysis</button>
+        <p>REFERENCE</p><a href="https://asq.org/quality-resources/qfd-quality-function-deployment" target="_blank" rel="noreferrer"><span>↗</span>ASQ methodology</a>
+      </nav>
+      <div className="sidebarFoot"><button onClick={() => setHelp(true)}>?</button><div><b>Need help?</b><small>Open the quick guide</small></div></div>
+    </aside>
 
-  function resetSample() {
-    setNeeds(sampleNeeds); setTechnical(sampleTechnical); setRelations(initialRelations);
-    setProjectName("Digital service concept"); localStorage.removeItem("qfd-project");
-  }
-
-  function exportCsv() {
-    const rows = [["Customer need", "Importance", ...technical.map(t => t.name)],
-      ...needs.map((n, i) => [n.name, n.importance, ...relations[i]]),
-      ["Weighted priority", "", ...scores]];
-    const csv = rows.map(r => r.map(v => `"${String(v).replaceAll('"', '""')}"`).join(",")).join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    const a = document.createElement("a"); a.href = url; a.download = "house-of-quality.csv"; a.click(); URL.revokeObjectURL(url);
-  }
-
-  return (
     <main>
-      <header className="topbar">
-        <div className="brand"><span className="brandMark">Q</span><div><b>Quality Function Deployment</b><small>Voice of customer → design priorities</small></div></div>
-        <nav aria-label="Primary"><a href="#workspace">Workspace</a><a href="#method">Method</a></nav>
-        <button className="save" onClick={saveProject}>{saved ? "Saved ✓" : "Save project"}</button>
-      </header>
+      <header><div><div className="crumb">PROJECTS <span>/</span> {project.name.toUpperCase()}</div><h1>House of Quality</h1></div><div className="headerActions"><button className="ghost" onClick={reset}>Reset</button><button className="ghost" onClick={exportCsv}>Export CSV</button><button className="primary" onClick={save}>Save project</button></div></header>
 
-      <section className="hero">
-        <div className="eyebrow">HOUSE OF QUALITY BUILDER</div>
-        <h1>Turn customer needs into<br/><em>clear design decisions.</em></h1>
-        <p>Build a focused Quality Function Deployment matrix, reveal the strongest technical priorities, and keep your team aligned on what customers value most.</p>
-        <div className="heroActions"><a className="primary" href="#workspace">Open the workspace <span>→</span></a><a className="textLink" href="#method">How QFD works</a></div>
-        <div className="heroStats"><div><strong>{needs.length}</strong><span>customer needs</span></div><div><strong>{technical.length}</strong><span>technical responses</span></div><div><strong>{scores.reduce((a,b)=>a+b,0)}</strong><span>weighted relationship points</span></div></div>
+      <section className="projectCard">
+        <label>Project name<input value={project.name} onChange={e => setProject({ ...project, name: e.target.value })} /></label>
+        <label>Product or service<input value={project.product} onChange={e => setProject({ ...project, product: e.target.value })} /></label>
+        <label>Project owner<input value={project.owner} onChange={e => setProject({ ...project, owner: e.target.value })} /></label>
+        <div className="status"><span>Draft</span><small>Saved locally</small></div>
       </section>
 
-      <section className="workspace" id="workspace">
-        <div className="sectionHead"><div><span className="step">LIVE WORKSPACE</span><h2>Your House of Quality</h2><p>Click relationship cells to cycle through none, weak, moderate, and strong.</p></div><div className="toolbar"><button onClick={resetSample}>Reset sample</button><button onClick={exportCsv}>Export CSV ↓</button></div></div>
-        <div className="projectLine"><label>Project</label><input value={projectName} onChange={e=>setProjectName(e.target.value)} aria-label="Project name"/><span>Local draft</span></div>
-        <div className="matrixWrap">
-          <table className="matrix">
-            <thead><tr><th className="needHeading">Voice of the customer</th><th className="importanceHeading">Importance</th>{technical.map((t, i)=><th key={t.id}><textarea aria-label={`Technical response ${i+1}`} value={t.name} onChange={e=>setTechnical(technical.map((x,j)=>j===i?{...x,name:e.target.value}:x))}/><span className="direction">{t.direction === "up" ? "↑ Maximize" : t.direction === "down" ? "↓ Minimize" : "◎ Target"}</span></th>)}</tr></thead>
-            <tbody>{needs.map((need,row)=><tr key={need.id}><th><input aria-label={`Customer need ${row+1}`} value={need.name} onChange={e=>setNeeds(needs.map((n,i)=>i===row?{...n,name:e.target.value}:n))}/></th><td><select value={need.importance} onChange={e=>setNeeds(needs.map((n,i)=>i===row?{...n,importance:Number(e.target.value)}:n))} aria-label={`Importance of ${need.name}`}>{[1,2,3,4,5].map(v=><option key={v}>{v}</option>)}</select></td>{technical.map((_,col)=><td key={col}><button className={`relation r${relations[row]?.[col] || 0}`} onClick={()=>cycleRelation(row,col)} aria-label={`${relationLabel[relations[row]?.[col] || 0]} relationship between ${need.name} and ${technical[col].name}`}>{relations[row]?.[col] || "·"}</button></td>)}</tr>)}</tbody>
-            <tfoot><tr><th>Target</th><td></td>{technical.map((t,i)=><td key={t.id}><input aria-label={`Target for ${t.name}`} value={t.target} onChange={e=>setTechnical(technical.map((x,j)=>j===i?{...x,target:e.target.value}:x))}/></td>)}</tr><tr className="scoreRow"><th>Weighted priority</th><td></td>{scores.map((s,i)=><td key={i}><strong>{s}</strong><span className="bar"><i style={{width:`${(s/maxScore)*100}%`}}/></span></td>)}</tr></tfoot>
-          </table>
-        </div>
-        <div className="legend"><span><i className="dot r9">9</i> Strong</span><span><i className="dot r3">3</i> Moderate</span><span><i className="dot r1">1</i> Weak</span><span><i className="dot r0">·</i> None</span><small>Priority = importance × relationship strength</small></div>
-      </section>
+      <div className="viewTabs"><button className={view === "matrix" ? "active" : ""} onClick={() => setView("matrix")}>Relationship matrix</button><button className={view === "priorities" ? "active" : ""} onClick={() => setView("priorities")}>Priority analysis <span>{responses.length}</span></button></div>
 
-      <section className="insights">
-        <div><span className="step">PRIORITY SIGNAL</span><h2>Focus effort where it matters.</h2><p>The weighted scores combine customer importance with relationship strength. The highest scoring technical response deserves the earliest team attention.</p></div>
-        <ol>{scores.map((score,i)=>({score,name:technical[i].name,index:i})).sort((a,b)=>b.score-a.score).map((item,rank)=><li key={item.index}><b>0{rank+1}</b><span><strong>{item.name}</strong><small>{item.score} weighted points</small></span><div className="rankBar"><i style={{width:`${item.score/maxScore*100}%`}}/></div></li>)}</ol>
-      </section>
+      {view === "matrix" ? <>
+        <section className="panel introPanel"><div><span className="kicker">STEP 1–3</span><h2>Connect customer needs to technical responses</h2><p>Edit the labels, set importance, then click each relationship cell to cycle through none, weak, moderate, and strong.</p></div><div className="legend"><span><i className="strong">9</i>Strong</span><span><i className="medium">3</i>Moderate</span><span><i className="weak">1</i>Weak</span><span><i>—</i>None</span></div></section>
+        <section className="matrixPanel">
+          <div className="matrixScroll"><table>
+            <thead><tr><th className="needCol"><small>WHATs</small>Customer needs</th><th className="rateCol">Importance</th><th className="rateCol">Current</th><th className="rateCol">Target</th>{responses.map((response, i) => <th className="responseCol" key={response.id}><button className="remove" title="Remove response" onClick={() => removeResponse(i)}>×</button><textarea value={response.name} aria-label={`Technical response ${i + 1}`} onChange={e => setResponses(responses.map((r, x) => x === i ? { ...r, name: e.target.value } : r))} /><select value={response.direction} onChange={e => setResponses(responses.map((r, x) => x === i ? { ...r, direction: e.target.value as Response["direction"] } : r))}><option value="up">↑ Maximize</option><option value="down">↓ Minimize</option><option value="target">◎ Target</option></select></th>)}</tr></thead>
+            <tbody>{needs.map((need, row) => <tr key={need.id}><th><button className="remove" title="Remove need" onClick={() => removeNeed(row)}>×</button><input value={need.name} aria-label={`Customer need ${row + 1}`} onChange={e => setNeeds(needs.map((n, i) => i === row ? { ...n, name: e.target.value } : n))} /></th>{(["importance", "current", "target"] as const).map(field => <td className="rating" key={field}><select value={need[field]} onChange={e => setNeeds(needs.map((n, i) => i === row ? { ...n, [field]: Number(e.target.value) } : n))}>{[1,2,3,4,5].map(v => <option key={v}>{v}</option>)}</select></td>)}{responses.map((response, col) => { const value = relations[row]?.[col] || 0; return <td className="relationCell" key={response.id}><button className={`relation v${value}`} onClick={() => cycle(row, col)} aria-label={`${value || "No"} relationship between ${need.name} and ${response.name}`}>{value || "—"}</button></td>})}</tr>)}</tbody>
+            <tfoot><tr className="targetRow"><th>Technical target</th><td colSpan={3}></td>{responses.map((response, i) => <td key={response.id}><input value={response.target} onChange={e => setResponses(responses.map((r, x) => x === i ? { ...r, target: e.target.value } : r))} aria-label={`Target for ${response.name}`} /></td>)}</tr><tr className="scoreRow"><th>Weighted priority</th><td colSpan={3}></td>{scores.map((score, i) => <td key={responses[i].id}><b>{score}</b><i><span style={{ width: `${score / maxScore * 100}%` }} /></i></td>)}</tr></tfoot>
+          </table></div>
+          <div className="matrixActions"><button onClick={addNeed}>＋ Add customer need</button><button onClick={addResponse}>＋ Add technical response</button></div>
+        </section>
+      </> : <section className="analysisGrid">
+        <div className="panel analysisLead"><span className="kicker">CALCULATED PRIORITIES</span><h2>Where should the team focus?</h2><p>Scores combine customer importance and relationship strength. Higher scores indicate technical responses with greater potential customer impact.</p><div className="metric"><strong>{scores.reduce((a,b) => a+b, 0)}</strong><span>Total weighted points</span></div></div>
+        <div className="panel ranking"><h3>Technical response ranking</h3>{scores.map((score, i) => ({ score, response: responses[i] })).sort((a,b) => b.score-a.score).map((item, rank) => <article key={item.response.id}><span className="rank">{rank + 1}</span><div><b>{item.response.name}</b><small>{item.response.direction === "up" ? "Maximize" : item.response.direction === "down" ? "Minimize" : "Hit target"} · Target {item.response.target}</small><i><span style={{ width: `${item.score / maxScore * 100}%` }} /></i></div><strong>{item.score}</strong></article>)}</div>
+        <div className="panel gaps"><h3>Customer satisfaction gaps</h3>{needs.map(n => <article key={n.id}><div><b>{n.name}</b><small>Current {n.current} → Target {n.target}</small></div><strong className={n.target - n.current >= 2 ? "highGap" : ""}>+{n.target - n.current}</strong></article>)}</div>
+      </section>}
 
-      <section className="method" id="method">
-        <div className="methodIntro"><span className="step">THE METHOD</span><h2>Customer voice,<br/>deployed with discipline.</h2><p>ASQ describes QFD as a focused methodology for listening carefully to the voice of the customer and responding to those needs through the responsible organizational functions.</p><a href="https://asq.org/quality-resources/qfd-quality-function-deployment" target="_blank" rel="noreferrer">Read the ASQ reference ↗</a></div>
-        <div className="methodSteps"><article><b>01</b><h3>Listen</h3><p>Capture customer wows, wants, and musts in their own language.</p></article><article><b>02</b><h3>Translate</h3><p>Define measurable technical responses the team can influence.</p></article><article><b>03</b><h3>Relate</h3><p>Assess how strongly each response supports each customer need.</p></article><article><b>04</b><h3>Prioritize</h3><p>Use weighted evidence and targets to focus the work.</p></article></div>
-      </section>
-
-      <footer><div className="brand"><span className="brandMark">Q</span><div><b>Quality Function Deployment</b><small>Built for customer-driven teams</small></div></div><p>Methodology informed by public resources from the American Society for Quality. This independent tool is not affiliated with or endorsed by ASQ.</p></footer>
+      <footer><span>QFD Studio</span><p>Methodology informed by public American Society for Quality resources. Independent tool; not affiliated with or endorsed by ASQ.</p></footer>
     </main>
-  );
+
+    {toast && <div className="toast">✓ {toast}</div>}
+    {help && <div className="modalBack" onClick={() => setHelp(false)}><div className="modal" onClick={e => e.stopPropagation()}><button className="modalClose" onClick={() => setHelp(false)}>×</button><span className="kicker">QUICK GUIDE</span><h2>Build your House of Quality</h2><ol><li><b>Capture customer needs.</b> Use the customer’s language and assign importance from 1–5.</li><li><b>Define technical responses.</b> Add measurable characteristics your team can influence.</li><li><b>Map relationships.</b> Click a matrix cell: weak (1), moderate (3), or strong (9).</li><li><b>Act on priorities.</b> Review the calculated ranking and set measurable targets.</li></ol><button className="primary" onClick={() => setHelp(false)}>Start building</button></div></div>}
+  </div>;
 }
